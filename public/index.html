@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="da">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Login</title>
+  </head>
+  <body>
+    <nav>
+      <a id="nav-login" href="/index.html">Login</a>
+      <a id="nav-profile" href="/profile.html" hidden>Profile</a>
+    </nav>
+
+    <h1>Login</h1>
+
+    <form id="login">
+      <label>
+        Email
+        <input name="email" autocomplete="username" />
+      </label>
+      <br />
+      <label>
+        Password
+        <input name="password" type="password" autocomplete="current-password" />
+      </label>
+      <br />
+      <button>Login</button>
+    </form>
+
+    <pre id="out"></pre>
+
+    <script>
+      const out = document.querySelector("#out");
+      const navLogin = document.querySelector("#nav-login");
+      const navProfile = document.querySelector("#nav-profile");
+
+      const refreshNav = async () => {
+        try {
+          const res = await fetch("/me");
+          if (!res.ok) throw new Error("Not logged in");
+          navProfile.hidden = false;
+          navLogin.hidden = true;
+        } catch {
+          navProfile.hidden = true;
+          navLogin.hidden = false;
+        }
+      };
+
+      document.querySelector("#login").addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const form = new FormData(e.target);
+        const payload = {
+          email: form.get("email"),
+          password: form.get("password"),
+        };
+
+        const res = await fetch("/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        out.textContent = JSON.stringify(await res.json(), null, 2);
+        await refreshNav();
+      });
+
+      refreshNav();
+    </script>
+  </body>
+</html>
