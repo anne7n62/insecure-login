@@ -1,4 +1,5 @@
 import { DatabaseSync } from "node:sqlite";
+import bcrypt from "bcrypt";
 
 const db = new DatabaseSync("./app.db");
 
@@ -42,11 +43,25 @@ export const init = async () => {
     );
   `);
 
-  const existing = await get(`SELECT id FROM users WHERE email='test@test.dev'`);
+  // Opret en testbruger, hvis den ikke allerede findes
+  const existing = await get(`SELECT id FROM users WHERE email=?`, [
+    "test@test.dev",
+  ]);
   if (!existing) {
-    await run(`
-      INSERT INTO users (email, password, role)
-      VALUES ('test@test.dev', 'test1234', 'admin');
-    `);
+    const hash = await bcrypt.hash("test1234", 12);
+    await run(`INSERT INTO users (email, password, role) VALUES (?, ?, ?)`, [
+      "test@test.dev",
+      hash,
+      "admin",
+    ]);
   }
+};
+
+// Helper til password hash/verify
+export const hashPassword = async (password) => {
+  return await bcrypt.hash(password, 12);
+};
+
+export const verifyPassword = async (password, hash) => {
+  return await bcrypt.compare(password, hash);
 };
