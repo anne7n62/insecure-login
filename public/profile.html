@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Profile</title>
+  </head>
+  <body>
+    <nav>
+      <a id="nav-login" href="/index.html">Login</a>
+      <a id="nav-profile" href="/profile.html" hidden>Profile</a>
+    </nav>
+
+    <h1>Profile</h1>
+
+    <button id="me">Fetch /me</button>
+    <button id="logout">Logout</button>
+
+    <h2>Update profile</h2>
+    <form id="update">
+      <label>
+        New email
+        <input name="email" />
+      </label>
+      <br />
+      <label>
+        Role (try "admin")
+        <input name="role" />
+      </label>
+      <br />
+      <button>Update</button>
+    </form>
+
+    <pre id="out"></pre>
+
+    <script>
+      const out = document.querySelector("#out");
+      const navLogin = document.querySelector("#nav-login");
+      const navProfile = document.querySelector("#nav-profile");
+
+      const refreshNav = async () => {
+        try {
+          const res = await fetch("/me");
+          if (!res.ok) throw new Error("Not logged in");
+          navProfile.hidden = false;
+          navLogin.hidden = true;
+        } catch {
+          navProfile.hidden = true;
+          navLogin.hidden = false;
+        }
+      };
+
+      document.querySelector("#me").addEventListener("click", async () => {
+        const res = await fetch("/me");
+        out.textContent = JSON.stringify(await res.json(), null, 2);
+      });
+
+      document.querySelector("#logout").addEventListener("click", async () => {
+        const res = await fetch("/logout", { method: "POST" });
+        out.textContent = JSON.stringify(await res.json(), null, 2);
+        await refreshNav();
+      });
+
+      document.querySelector("#update").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const form = new FormData(e.target);
+
+        const res = await fetch("/profile/update", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: form.get("email"),
+            role: form.get("role"),
+          }),
+        });
+
+        out.textContent = JSON.stringify(await res.json(), null, 2);
+      });
+
+      refreshNav();
+    </script>
+  </body>
+</html>
