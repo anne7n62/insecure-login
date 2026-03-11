@@ -1,6 +1,7 @@
 import express from "express";
 import session from "express-session";
 import { init, get, run, all } from "./db.js";
+import rateLimit from "express-rate-limit";
 
 const app = express();
 const PORT = process.env.PORT ?? 3000;
@@ -11,18 +12,63 @@ app.use(express.static("public"));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+// Rate limiting (Availability + brute force-beskyttelse)
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const loginSchema = z.object({
+  email: z.string().email().max(254),
+  password: z.string().min(8).max(128),
+});
+
+// Middleware til validering
+const validate = (schema) => (req, res, next) => {
+  const result = schema.safeParse(req.body);
+
+  if (!result.success) {
+    return res.status(400).json({ message: "Invalid input" });
+  }
+
+  // Whitelisting: kun validerede felter videre
+  req.validatedData = result.data;
+  next();
+};
+
+app.post("/login", loginLimiter, validate(loginSchema), async (req, res) => {
+  const { email, password } = req.validatedData;
+
+  // Database lookup her (med parameterized query!)
+  res.json({ message: "Login logic continues..." });
+});
+
 app.use(
   session({
     secret: "dev-secret",
-    resave: true,
-    saveUninitialized: true,
+    resave: false,
+    saveUninitialized: false,
     cookie: {
-      httpOnly: false,
+      httpOnly: true,
+      secure: true,
       sameSite: "lax",
-      secure: false
-    }
-  })
-);
+      maxAge: 1000 * 60 * 60, // 1 hour
+    },
+  }),
+); // Rate limiting (Availability + brute force-beskyttelse)
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const loginSchema = z.object({
+  email: z.string().email().max(254),
+  password: z.string().min(8).max(128),
+});
 
 const requireAuth = (req, res, next) => {
   if (!req.session.user) return res.status(401).send("Not logged in");
