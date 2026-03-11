@@ -42,7 +42,9 @@ export const init = async () => {
     );
   `);
 
-  const existing = await get(`SELECT id FROM users WHERE email='test@test.dev'`);
+  const existing = await get(
+    `SELECT id FROM users WHERE email='test@test.dev'`,
+  );
   if (!existing) {
     await run(`
       INSERT INTO users (email, password, role)
